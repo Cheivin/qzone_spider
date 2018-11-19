@@ -124,6 +124,7 @@ reqs = threadpool.makeRequests(get_friend, friend_list.keys())
 # 将工作请求放入队列
 [pool.putRequest(req) for req in reqs]
 pool.wait()
+
 with open('data.txt', 'w') as json_file:
-    json.dump(info_list, json_file)
+    json.dump(info_list,json_file,ensure_ascii=False)#加上ensure_ascii=False，使中文正常显示
 print(error_list)
