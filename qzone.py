@@ -2,6 +2,8 @@
 
 import json
 import time
+import csv
+from enum import Enum
 
 import requests
 import threadpool
@@ -18,8 +20,8 @@ def get_g_tk():
     return g_tk
 
 
-qq_number = '********'
-password = '********'
+qq_number = '*********'
+password = '*********'
 login_url = 'https://i.qq.com/'
 
 driver = webdriver.Chrome()
@@ -76,7 +78,33 @@ def get_friend_addtime(friend):
         , headers=headers
         , cookies=cookie_dict)
     res_data = json.loads(res.text[len('_Callback('):-len(');')])
-    return res_data['data']['addFriendTime']
+    # return res_data['data']['addFriendTime']
+    return time.strftime("%Y-%m-%d", time.localtime(res_data['data']['addFriendTime']))
+
+
+# return time.strftime("%Y-%m-%d", res_data['data']['addFriendTime'])
+
+# 星座定义
+class Constellation(Enum):
+    未知 = -1
+    白羊座 = 0
+    金牛座 = 1
+    双子座 = 2
+    巨蟹座 = 3
+    狮子座 = 4
+    处女座 = 5
+    天秤座 = 6
+    天蝎座 = 7
+    射手座 = 8
+    摩羯座 = 9
+    水瓶座 = 10
+    双鱼座 = 11
+
+
+class Sex(Enum):
+    未知 = 0
+    男 = 1
+    女 = 2
 
 
 # 获取好友信息
@@ -88,8 +116,10 @@ def get_friend_info(friend):
         , cookies=cookie_dict)
     res_data = json.loads(res.text[len('_Callback('):-len(');')])['data']
     info = {
-        'sex': res_data['sex']
-        , 'constellation': res_data['constellation']
+        # 'sex': res_data['sex']
+        # , 'constellation': res_data['constellation']
+        'sex': Sex(res_data['sex']).name
+        , 'constellation': Constellation(res_data['constellation']).name
         , 'age': res_data['age']
         , 'birthyear': res_data['birthyear']
         , 'birthday': res_data['birthday']
@@ -115,7 +145,9 @@ def get_friend(friend):
         error_list.append(friend)
 
 
+print("获取好友列表...")
 friend_list = get_friend_list()
+print("获取好友信息...")
 # 设置线程池容量，创建线程池
 pool_size = 10
 pool = threadpool.ThreadPool(pool_size)
@@ -124,7 +156,15 @@ reqs = threadpool.makeRequests(get_friend, friend_list.keys())
 # 将工作请求放入队列
 [pool.putRequest(req) for req in reqs]
 pool.wait()
+print("抓取完成...\n")
+# with open('data.txt', 'w') as json_file:
+#    json.dump(info_list, json_file, ensure_ascii=False)  # 加上ensure_ascii=False，使中文正常显示
 
-with open('data.txt', 'w') as json_file:
-    json.dump(info_list,json_file,ensure_ascii=False)#加上ensure_ascii=False，使中文正常显示
+with open('friend.csv', 'w', encoding='utf-8-sig') as csv_file:
+    csv_out = csv.DictWriter(csv_file,
+                             ['qq', 'sex', 'constellation', 'age', 'birthyear', 'birthday', 'country', 'province',
+                              'city', 'addTime'])
+    csv_out.writeheader()
+    csv_out.writerows(info_list)
+
 print(error_list)
